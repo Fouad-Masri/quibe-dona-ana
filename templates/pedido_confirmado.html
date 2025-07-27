@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <title>Pedido Confirmado</title>
+  <style>
+    body {
+      background-color: #f0fff4;
+      font-family: Arial, sans-serif;
+      text-align: center;
+      padding: 50px;
+    }
+
+    .mensagem {
+      background-color: #d4edda;
+      border: 2px solid #28a745;
+      padding: 30px;
+      border-radius: 10px;
+      display: inline-block;
+    }
+
+    .mensagem h1 {
+      color: #155724;
+      font-size: 28px;
+      margin-bottom: 10px;
+    }
+
+    .mensagem p {
+      font-size: 18px;
+      color: #155724;
+    }
+
+    .whatsapp-link {
+      display: inline-block;
+      margin-top: 20px;
+      padding: 12px 20px;
+      background-color: #25d366;
+      color: white;
+      font-weight: bold;
+      border-radius: 6px;
+      text-decoration: none;
+    }
+
+    .whatsapp-link:hover {
+      background-color: #1ebe5d;
+    }
+
+    .botao-ok {
+      margin-top: 30px;
+      padding: 12px 25px;
+      background-color: #007bff;
+      color: white;
+      font-size: 16px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+
+    .botao-ok:hover {
+      background-color: #0056b3;
+    }
+  </style>
+</head>
+<body>
+  <div class="mensagem">
+    <h1>✅ Pedido realizado com sucesso!</h1>
+    <p>Obrigado pela preferência.</p>
+    <p>Para mais informações, entre em contato conosco no WhatsApp:</p>
+    <a class="whatsapp-link" href="{{ whatsapp_url }}" target="_blank">Falar no WhatsApp</a>
+    <br>
+    <form action="{{ url_for('index') }}" method="get">
+      <button type="submit" class="botao-ok">OK</button>
+    </form>
+  </div>
+</body>
+</html>

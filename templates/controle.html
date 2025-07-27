@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Controle de Pedidos - Quibe da Dona Ana</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: #fff8f5;
+      margin: 0;
+      padding: 20px;
+    }
+    header {
+      text-align: center;
+      margin-bottom: 25px;
+      position: relative;
+    }
+    h1 {
+      color: #8b0000;
+      font-weight: 700;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: white;
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+    th, td {
+      padding: 12px 15px;
+      border-bottom: 1px solid #ddd;
+      text-align: left;
+      vertical-align: top;
+    }
+    th {
+      background-color: #8b0000;
+      color: white;
+      font-weight: 700;
+    }
+    .btn {
+      background-color: #8b0000;
+      color: white;
+      padding: 10px 15px;
+      border-radius: 6px;
+      text-decoration: none;
+      font-weight: 700;
+      display: inline-block;
+      margin-bottom: 20px;
+    }
+    .btn:hover {
+      background-color: #a30000;
+    }
+    .logout-link {
+      position: absolute;
+      right: 0;
+      top: 0;
+      font-weight: 600;
+      color: #8b0000;
+      text-decoration: none;
+    }
+    .logout-link:hover {
+      text-decoration: underline;
+    }
+    ul {
+      margin: 0;
+      padding-left: 16px;
+    }
+    .avaliacoes {
+      max-width: 800px;
+      margin: 50px auto 30px;
+      background-color: #fff;
+      border-radius: 10px;
+      box-shadow: 0 0 12px rgba(0,0,0,0.1);
+      padding: 20px;
+    }
+    .avaliacao-item {
+      border-left: 5px solid #8b0000;
+      padding-left: 15px;
+      margin-bottom: 20px;
+    }
+    .avaliacao-item p {
+      margin: 5px 0;
+    }
+
+    .situacao-novo {
+      background-color: #d4edda;
+    }
+    .situacao-adiantamento {
+      background-color: #fff3cd;
+    }
+    .situacao-finalizado {
+      background-color: #f8d7da;
+    }
+
+    .acao-btn {
+      margin: 2px 3px;
+      padding: 5px 8px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 0.9em;
+    }
+    .btn-adiantamento {
+      background-color: #ffc107;
+      color: #212529;
+    }
+    .btn-finalizar {
+      background-color: #dc3545;
+      color: white;
+    }
+    .btn-excluir {
+      background-color: #6c757d;
+      color: white;
+    }
+    .btn-romaneio {
+      background-color: #17a2b8;
+      color: white;
+    }
+    .acao-btn:hover {
+      opacity: 0.85;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>Pedidos Recebidos</h1>
+  <a href="{{ url_for('admin') }}" class="btn">Ir para Administração</a>
+  <a href="{{ url_for('logout') }}" class="logout-link">Logout</a>
+</header>
+
+<table>
+  <thead>
+    <tr>
+      <th>Data/Hora</th>
+      <th>Nome</th>
+      <th>Telefone</th>
+      <th>Endereço</th>
+      <th>Pagamento</th>
+      <th>Pedido</th>
+      <th>Total (R$)</th>
+      <th>Observações</th>
+      <th>Situação</th>
+    </tr>
+  </thead>
+  <tbody id="pedidos-tbody">
+    <tr><td colspan="9" style="text-align:center;">Carregando pedidos...</td></tr>
+  </tbody>
+</table>
+
+{% if avaliacoes %}
+<div class="avaliacoes">
+  <h2 style="color: #8b0000;">⭐ Avaliações de Serviço</h2>
+  {% set total = avaliacoes|length %}
+  {% set soma = avaliacoes | map(attribute='estrela') | sum %}
+  {% set media = (soma / total) if total > 0 else 0 %}
+  <p><strong>Média geral:</strong> {{ "%.1f"|format(media) }} / 5.0 ⭐ ({{ ((media / 5) * 100)|round(0) }}%) baseada em {{ total }} avaliação{{ total > 1 and 'es' or '' }}.</p>
+  <hr>
+  {% for a in avaliacoes %}
+    <div class="avaliacao-item">
+      <p><strong>⭐ {{ a.estrela }}</strong></p>
+      <p>{{ a.comentario or 'Sem comentário' }}</p>
+    </div>
+  {% endfor %}
+</div>
+{% endif %}
+
+<script>
+  let statusPedidos = {};
+
+  async function atualizarPedidos() {
+    try {
+      const response = await fetch('{{ url_for("api_pedidos") }}');
+      const pedidos = await response.json();
+      const tbody = document.getElementById('pedidos-tbody');
+      tbody.innerHTML = '';
+
+      if (pedidos.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;">Nenhum pedido recebido ainda.</td></tr>';
+        return;
+      }
+
+      pedidos.forEach((pedido) => {
+        const status = statusPedidos[pedido.id] || 'novo';
+
+        let pedidoHtml = '<ul>';
+        for (const [produto, qtd] of Object.entries(pedido.pedido)) {
+          if (qtd > 0) {
+            pedidoHtml += `<li>${produto}: ${qtd}</li>`;
+          }
+        }
+        pedidoHtml += '</ul>';
+
+        const linha = document.createElement('tr');
+        linha.classList.add(`situacao-${status}`);
+        linha.setAttribute('data-id', pedido.id);
+
+        const enderecoCompleto = `${pedido.endereco}, Nº ${pedido.numero}`;
+        const dataHora = pedido.data_hora || '—';
+
+        linha.innerHTML = `
+          <td>${dataHora}</td>
+          <td>${pedido.nome}</td>
+          <td>${pedido.telefone}</td>
+          <td>${enderecoCompleto}</td>
+          <td>${pedido.pagamento}</td>
+          <td>${pedidoHtml}</td>
+          <td>${pedido.total.toFixed(2)}</td>
+          <td>${pedido.obs || 'Nenhuma'}</td>
+          <td>
+            <button class="acao-btn btn-adiantamento">Em adiantamento</button>
+            <button class="acao-btn btn-finalizar">Finalizar</button>
+            <button class="acao-btn btn-excluir">Excluir</button>
+            <a href="/romaneio/${pedido.id}" target="_blank" class="acao-btn btn-romaneio">📄 Pedido</a>
+          </td>
+        `;
+
+        tbody.appendChild(linha);
+
+        // Botões
+        const btnAdiantamento = linha.querySelector('.btn-adiantamento');
+        const btnFinalizar = linha.querySelector('.btn-finalizar');
+        const btnExcluir = linha.querySelector('.btn-excluir');
+        const btnRomaneio = linha.querySelector('.btn-romaneio');
+
+        btnAdiantamento.addEventListener('click', () => {
+          linha.className = 'situacao-adiantamento';
+          statusPedidos[pedido.id] = 'adiantamento';
+        });
+
+        btnFinalizar.addEventListener('click', () => {
+          linha.className = 'situacao-finalizado';
+          statusPedidos[pedido.id] = 'finalizado';
+        });
+
+        btnExcluir.addEventListener('click', async () => {
+          const confirmacao = confirm("Tem certeza que deseja excluir este pedido?");
+          if (confirmacao) {
+            await fetch(`/api/excluir_pedido/${pedido.id}`, { method: 'DELETE' });
+            linha.remove();
+            delete statusPedidos[pedido.id];
+          }
+        });
+
+        // 🔥 Novo botão Pedido (romaneio)
+        btnRomaneio.addEventListener('click', () => {
+          window.open(`/romaneio/${pedido.id}`, '_blank');
+        });
+      });
+
+    } catch (error) {
+      console.error('Erro ao carregar pedidos:', error);
+      document.getElementById('pedidos-tbody').innerHTML = '<tr><td colspan="9" style="text-align:center;">Erro ao carregar pedidos.</td></tr>';
+    }
+  }
+
+  atualizarPedidos();
+  setInterval(atualizarPedidos, 5000);
+</script>
+
+</body>
+</html>
